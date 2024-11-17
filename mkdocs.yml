@@ -1,0 +1,20 @@
+site_name: mkdocs-sql
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - content.code.copy
+
+plugins:
+  - search
+  - sql:
+      database:
+        type: sqlite
+        path: ./examples/sample.db
+
+nav:
+  - Home: index.md
+  - Examples:
+    - SQLite: examples/sqlite.md
+    - DuckDB: examples/duckdb.md
+  - Configuration: configuration.md
