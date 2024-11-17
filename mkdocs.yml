@@ -4,17 +4,31 @@ theme:
   features:
     - navigation.tabs
     - content.code.copy
+    - content.code.select
+  icon:
+    admonition:
+      note: material/table
 
 plugins:
   - search
   - sql:
       database:
         type: sqlite
-        path: ./examples/sample.db
+        path: docs/examples/population.sqlite
+      show_query: false  # Global setting, can be overridden per-page
 
 nav:
   - Home: index.md
   - Examples:
-    - SQLite: examples/sqlite.md
-    - DuckDB: examples/duckdb.md
+    - World Population: examples/population.md
   - Configuration: configuration.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+extra_css:
+  - https://fonts.googleapis.com/icon?family=Material+Icons

@@ -1,0 +1,112 @@
+.sql-wrapper {
+    margin: 1.5em 0;
+    position: relative;
+}
+
+.sql-controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+}
+
+.sql-toggle, .table-toggle {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.sql-toggle:hover, .table-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #000;
+}
+
+.sql-toggle.active, .table-toggle.active {
+    color: #2196F3;
+}
+
+.material-icons {
+    font-size: 20px;
+}
+
+.sql-query {
+    margin: 1em 0;
+}
+
+.table-wrapper {
+    position: relative;
+    margin: 1em 0;
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Table styles */
+.formatted-table {
+    width: 100%;
+}
+
+.formatted-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: 14px;
+}
+
+.formatted-table thead {
+    background-color: #f8f9fa;
+}
+
+.formatted-table th {
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.formatted-table th,
+.formatted-table td {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+}
+
+.formatted-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.formatted-table tr:hover {
+    background-color: #f2f2f2;
+}
+
+/* Column alignment */
+.formatted-table .align-left {
+    text-align: left;
+}
+
+.formatted-table .align-right {
+    text-align: right;
+}
+
+/* Raw table styles */
+.raw-table {
+    margin: 1em 0;
+}
+
+.raw-table pre {
+    margin: 0;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.45;
+}
