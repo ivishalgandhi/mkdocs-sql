@@ -1,14 +1,17 @@
 # mkdocs-sql
 
-A MkDocs plugin for executing and displaying SQL queries in your documentation.
+A MkDocs plugin for executing and embedding output of SQL queries in your documentation.
 
 ## Features
 
-- Embed output SQL queries in your markdown files
+- Embed output of SQL queries in your markdown files
 - Support for SQLite databases
 - Display results as formatted tables
 - Error handling and display
 - Database configuration via mkdocs.yml
+- Live updates - changes to database reflect immediately in documentation
+- Toggle SQL queries on/off
+- Toggle between formatted and raw markdown views
 
 ## Installation
 
@@ -38,6 +41,23 @@ showQuery: true  # optional, defaults to true
 SELECT * FROM users LIMIT 5;
 ```
 ```
+
+## Example Database Management
+
+The plugin comes with a sample population database and management script. You can use it to test live updates:
+
+```bash
+# Reset database to initial state
+python docs/examples/create_sample_db.py --reset
+
+# Update a city's population (±10% random change)
+python docs/examples/create_sample_db.py --update-city "New York"
+
+# Update a country's population (±5% random change)
+python docs/examples/create_sample_db.py --update-country "United States"
+```
+
+Changes to the database are reflected immediately in the documentation - just refresh the page!
 
 ## Configuration
 

@@ -18,8 +18,9 @@ plugins:
       showQuery: false  # Global setting, can be overridden per-page
 
 nav:
+  - Home: examples/population.md
   - Examples:
-    - World Population: examples/population.md
+      - Population Data: examples/population.md
 
 markdown_extensions:
   - pymdownx.highlight:

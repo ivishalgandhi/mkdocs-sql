@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mkdocs-sql"
-version = "0.1.0"
+name = "mkdocs_sql"
+version = "0.2.2"
 authors = [
     { name = "Vishal Gandhi", email = "igandhivishal@gmail.com" }
 ]
@@ -19,11 +19,16 @@ classifiers = [
     "Topic :: Documentation",
 ]
 dependencies = [
-    "mkdocs>=1.5.0",
-    "pandas>=2.0.0",
+    "mkdocs>=1.6.1",
+    "pandas>=2.2.3",
     "tabulate>=0.9.0",
-    "duckdb>=0.9.0",
+    "pyyaml>=6.0.2"
 ]
+
+[project.urls]
+Homepage = "https://github.com/ivishalgandhi/mkdocs-sql"
+Repository = "https://github.com/ivishalgandhi/mkdocs-sql"
+Issues = "https://github.com/ivishalgandhi/mkdocs-sql/issues"
 
 [project.entry-points."mkdocs.plugins"]
 sql = "mkdocs_sql.plugin:SQLPlugin"

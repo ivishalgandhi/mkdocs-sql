@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import argparse
+import random
 
 def create_database():
     # Ensure examples directory exists
@@ -8,6 +10,10 @@ def create_database():
     # Create and connect to database
     conn = sqlite3.connect('docs/examples/population.sqlite')
     c = conn.cursor()
+
+    # Drop existing tables if they exist
+    c.execute('DROP TABLE IF EXISTS cities')
+    c.execute('DROP TABLE IF EXISTS countries')
 
     # Create countries table
     c.execute('''
@@ -71,5 +77,50 @@ def create_database():
     conn.commit()
     conn.close()
 
+def update_population(city_name=None, country_name=None):
+    conn = sqlite3.connect('docs/examples/population.sqlite')
+    c = conn.cursor()
+    
+    if city_name:
+        # Random population change between -10% to +10%
+        c.execute('SELECT population FROM cities WHERE name = ?', (city_name,))
+        current_pop = c.fetchone()[0]
+        change = random.uniform(0.9, 1.1)
+        new_pop = int(current_pop * change)
+        
+        c.execute('UPDATE cities SET population = ? WHERE name = ?', (new_pop, city_name))
+        print(f"Updated {city_name}'s population to {new_pop:,}")
+    
+    if country_name:
+        # Random population change between -5% to +5%
+        c.execute('SELECT population FROM countries WHERE name = ?', (country_name,))
+        current_pop = c.fetchone()[0]
+        change = random.uniform(0.95, 1.05)
+        new_pop = int(current_pop * change)
+        
+        c.execute('UPDATE countries SET population = ? WHERE name = ?', (new_pop, country_name))
+        print(f"Updated {country_name}'s population to {new_pop:,}")
+    
+    conn.commit()
+    conn.close()
+
+def main():
+    parser = argparse.ArgumentParser(description='Manage population database')
+    parser.add_argument('--reset', action='store_true', help='Reset database to initial state')
+    parser.add_argument('--update-city', help='Update city population randomly')
+    parser.add_argument('--update-country', help='Update country population randomly')
+    
+    args = parser.parse_args()
+    
+    if args.reset:
+        create_database()
+        print("Database reset to initial state")
+    
+    if args.update_city:
+        update_population(city_name=args.update_city)
+    
+    if args.update_country:
+        update_population(country_name=args.update_country)
+
 if __name__ == '__main__':
-    create_database()
+    main()
