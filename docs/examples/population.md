@@ -1,5 +1,6 @@
 ---
-database: ./population.sqlite
+databasePath: ./population.sqlite
+showQuery: false
 ---
 
 # World Population Data Analysis

@@ -12,16 +12,14 @@ theme:
 plugins:
   - search
   - sql:
-      database:
+      databasePath:
         type: sqlite
         path: docs/examples/population.sqlite
-      show_query: false  # Global setting, can be overridden per-page
+      showQuery: false  # Global setting, can be overridden per-page
 
 nav:
-  - Home: index.md
   - Examples:
     - World Population: examples/population.md
-  - Configuration: configuration.md
 
 markdown_extensions:
   - pymdownx.highlight:

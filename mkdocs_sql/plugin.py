@@ -14,7 +14,12 @@ class SQLPlugin(BasePlugin):
             'type': 'sqlite',
             'path': None
         })),
+        ('databasePath', config_options.Type(dict, default={
+            'type': 'sqlite',
+            'path': None
+        })),
         ('show_query', config_options.Type(bool, default=True)),
+        ('showQuery', config_options.Type(bool, default=True)),
     )
 
     def __init__(self):
@@ -33,8 +38,8 @@ class SQLPlugin(BasePlugin):
         return config
 
     def on_page_markdown(self, markdown, page, config, files):
-        db_config = self.config['database'].copy()
-        show_query = self.config['show_query']  # default from config
+        db_config = self.config.get('databasePath', self.config['database']).copy()
+        show_query = self.config.get('showQuery', self.config['show_query'])  # default from config
 
         # Check for frontmatter
         if markdown.startswith('---'):
@@ -43,20 +48,24 @@ class SQLPlugin(BasePlugin):
                 end_pos = markdown.find('---', 3)
                 if end_pos != -1:
                     frontmatter = yaml.safe_load(markdown[3:end_pos])
-                    # Override show_query if specified in frontmatter
-                    if 'show_query' in frontmatter:
+                    # Override showQuery if specified in frontmatter
+                    if 'showQuery' in frontmatter:
+                        show_query = frontmatter['showQuery']
+                    elif 'show_query' in frontmatter:  # backwards compatibility
                         show_query = frontmatter['show_query']
                     # Override database path if specified in frontmatter
-                    if 'database' in frontmatter:
+                    if 'databasePath' in frontmatter:
+                        db_path = frontmatter['databasePath']
+                    elif 'database' in frontmatter:  # backwards compatibility
                         db_path = frontmatter['database']
-                        # Handle ~ in path
-                        if db_path.startswith('~'):
-                            db_path = os.path.expanduser(db_path)
-                        # Handle relative paths
-                        if not os.path.isabs(db_path):
-                            # Make path relative to the markdown file's directory
-                            db_path = os.path.join(os.path.dirname(page.file.abs_src_path), db_path)
-                        db_config['path'] = db_path
+                    # Handle ~ in path
+                    if db_path.startswith('~'):
+                        db_path = os.path.expanduser(db_path)
+                    # Handle relative paths
+                    if not os.path.isabs(db_path):
+                        # Make path relative to the markdown file's directory
+                        db_path = os.path.join(os.path.dirname(page.file.abs_src_path), db_path)
+                    db_config['path'] = db_path
             except yaml.YAMLError:
                 pass
 

@@ -4,8 +4,8 @@ A MkDocs plugin for executing and displaying SQL queries in your documentation.
 
 ## Features
 
-- Execute SQL queries directly in your markdown files
-- Support for SQLite and DuckDB
+- Embed output SQL queries in your markdown files
+- Support for SQLite databases
 - Display results as formatted tables
 - Error handling and display
 - Database configuration via mkdocs.yml
@@ -22,13 +22,18 @@ pip install mkdocs-sql
 ```yaml
 plugins:
   - sql:
-      database:
-        type: sqlite  # or duckdb
+      databasePath:
+        type: sqlite
         path: ./path/to/database.file
 ```
 
 2. In your markdown files:
 ```markdown
+---
+databasePath: ./relative/path/to/database.file
+showQuery: true  # optional, defaults to true
+---
+
 ```sql
 SELECT * FROM users LIMIT 5;
 ```
@@ -38,8 +43,9 @@ SELECT * FROM users LIMIT 5;
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| database.type | Database type (sqlite/duckdb) | sqlite |
-| database.path | Path to database file | None |
+| databasePath.type | Database type (currently only sqlite) | sqlite |
+| databasePath.path | Path to database file | None |
+| showQuery | Show SQL queries by default | true |
 
 ## License
 
