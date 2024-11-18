@@ -33,6 +33,9 @@ ENV/
 # mkdocs
 site/
 
+# PyPI configuration
+.pypirc
+
 # OS
 .DS_Store
 Thumbs.db
