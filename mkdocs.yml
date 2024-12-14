@@ -12,15 +12,28 @@ theme:
 plugins:
   - search
   - sql:
-      databasePath:
-        type: sqlite
-        path: docs/examples/population.sqlite
-      showQuery: false  # Global setting, can be overridden per-page
+      databases:
+        default:
+          type: sqlite
+          path: docs/examples/population.sqlite
+        adventureworks:
+          type: mssql
+          driver: "ODBC Driver 18 for SQL Server"
+          server: "127.0.0.1,1433"
+          database: AdventureWorks2022
+          username: sa
+          password: ${MSSQL_PASSWORD}
+          encrypt: true
+          trust_server_certificate: true
+      show_query: false  # Global setting, can be overridden per-page
 
 nav:
   - Home: examples/population.md
   - Examples:
       - Population Data: examples/population.md
+      - Multiple Databases: examples/multiple_databases.md
+      - AdventureWorks: examples/adventureworks.md
+      - Docker Setup: examples/docker_setup.md
 
 markdown_extensions:
   - pymdownx.highlight:

@@ -1,8 +1,3 @@
----
-databasePath: ./population.sqlite
-showQuery: false
----
-
 # World Population Data Analysis
 
 This example demonstrates using SQL queries to analyze world population data. The database contains information about countries and their major cities, including population data, geographical information, and economic indicators.
@@ -17,7 +12,9 @@ The database consists of two main tables:
 
 ### Top 5 Most Populous Countries
 
-```sql
+Find the most populous countries and their GDP per capita:
+
+```sql[default]
 SELECT 
     name,
     population,
@@ -29,7 +26,9 @@ LIMIT 5;
 
 ### Population Density Analysis
 
-```sql
+Analyze countries with the highest population density:
+
+```sql[default]
 SELECT 
     name,
     population,
@@ -42,7 +41,9 @@ LIMIT 5;
 
 ### Cities vs Country Population
 
-```sql
+Compare city populations to their country's total population:
+
+```sql[default]
 SELECT 
     c.name as country_name,
     ci.name as city_name,
@@ -57,7 +58,9 @@ LIMIT 5;
 
 ### Population by Continent
 
-```sql
+Analyze population and economic indicators by continent:
+
+```sql[default]
 SELECT 
     continent,
     COUNT(*) as num_countries,
@@ -66,19 +69,4 @@ SELECT
 FROM countries
 GROUP BY continent
 ORDER BY total_population DESC;
-```
-
-### Capital Cities Analysis
-
-```sql
-SELECT 
-    c.name as country_name,
-    ci.name as capital_city,
-    ci.population as capital_population,
-    ci.latitude,
-    ci.longitude
-FROM cities ci
-JOIN countries c ON ci.country_id = c.id
-WHERE ci.is_capital = 1
-ORDER BY ci.population DESC;
 ```

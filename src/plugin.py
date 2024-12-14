@@ -1,33 +1,92 @@
 import sqlite3
 import duckdb
 import os
+import pyodbc
 from mkdocs.plugins import BasePlugin
 from mkdocs.config import config_options
 import re
 import pandas as pd
 from tabulate import tabulate
 import yaml
+from typing import Dict, Any, Optional
+
+class DatabaseConnection:
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.connection = None
+        self.type = config.get('type', 'sqlite')
+        
+    def connect(self) -> None:
+        """Establish database connection based on configuration."""
+        if self.connection:
+            return
+
+        if self.type == 'mssql':
+            self.connection = self._connect_mssql()
+        elif self.type == 'duckdb':
+            self.connection = duckdb.connect(self.config['path'])
+        else:  # sqlite
+            self.connection = sqlite3.connect(self.config['path'])
+
+    def _connect_mssql(self):
+        """Create a connection to SQL Server."""
+        params = {
+            'Driver': self.config.get('driver', 'ODBC Driver 18 for SQL Server'),
+            'Server': self.config['server'],
+            'Database': self.config['database'],
+        }
+        
+        if 'trusted_connection' in self.config:
+            params['Trusted_Connection'] = 'yes'
+        else:
+            params['Uid'] = self.config.get('username')
+            # Get password from environment variable if it starts with ${
+            pwd = self.config.get('password', '')
+            if isinstance(pwd, str) and pwd.startswith('${') and pwd.endswith('}'):
+                env_var = pwd[2:-1]  # Remove ${ and }
+                pwd = os.environ.get(env_var, '')
+            params['Pwd'] = pwd
+        
+        # Handle boolean parameters that need to be 'yes' or 'no'
+        param_mapping = {
+            'encrypt': 'Encrypt',
+            'trust_server_certificate': 'TrustServerCertificate'
+        }
+        
+        for config_key, param_key in param_mapping.items():
+            if config_key in self.config:
+                params[param_key] = 'yes' if self.config[config_key] else 'no'
+        
+        # Handle other parameters
+        if 'port' in self.config:
+            params['Port'] = self.config['port']
+        
+        conn_str = ';'.join(f"{k}={v}" for k, v in params.items() if v is not None)
+        print(f"Connection string (with password masked): {conn_str.replace(params.get('Pwd', ''), '***')}")
+        return pyodbc.connect(conn_str)
+
+    def execute_query(self, query: str) -> pd.DataFrame:
+        """Execute SQL query and return results as DataFrame."""
+        self.connect()
+        return pd.read_sql_query(query, self.connection)
+
+    def close(self) -> None:
+        """Close the database connection."""
+        if self.connection:
+            self.connection.close()
+            self.connection = None
 
 class SQLPlugin(BasePlugin):
     config_scheme = (
-        ('database', config_options.Type(dict, default={
-            'type': 'sqlite',
-            'path': None
-        })),
-        ('databasePath', config_options.Type(dict, default={
-            'type': 'sqlite',
-            'path': None
-        })),
+        ('databases', config_options.Type(dict, default={})),
         ('show_query', config_options.Type(bool, default=True)),
-        ('showQuery', config_options.Type(bool, default=True)),
     )
 
     def __init__(self):
-        self.db_connection = None
-        self.current_db_path = None
+        self.connections: Dict[str, DatabaseConnection] = {}
 
     def on_config(self, config):
-        """Add SQL toggle assets to the config"""
+        """Initialize database configurations."""
         if 'extra_css' not in config:
             config['extra_css'] = []
         if 'extra_javascript' not in config:
@@ -38,57 +97,37 @@ class SQLPlugin(BasePlugin):
         return config
 
     def on_page_markdown(self, markdown, page, config, files):
-        db_config = self.config.get('databasePath', self.config['database']).copy()
-        show_query = self.config.get('showQuery', self.config['show_query'])  # default from config
+        """Process SQL blocks in markdown."""
+        show_query = self.config.get('show_query', True)
+        db_configs = self.config.get('databases', {}).copy()
 
-        # Check for frontmatter
+        # Parse frontmatter for database configs and show_query setting
         if markdown.startswith('---'):
             try:
-                # Find the end of frontmatter
                 end_pos = markdown.find('---', 3)
                 if end_pos != -1:
                     frontmatter = yaml.safe_load(markdown[3:end_pos])
-                    # Override showQuery if specified in frontmatter
-                    if 'showQuery' in frontmatter:
-                        show_query = frontmatter['showQuery']
-                    elif 'show_query' in frontmatter:  # backwards compatibility
+                    if 'show_query' in frontmatter:
                         show_query = frontmatter['show_query']
-                    # Override database path if specified in frontmatter
-                    if 'databasePath' in frontmatter:
-                        db_path = frontmatter['databasePath']
-                    elif 'database' in frontmatter:  # backwards compatibility
-                        db_path = frontmatter['database']
-                    # Handle ~ in path
-                    if db_path.startswith('~'):
-                        db_path = os.path.expanduser(db_path)
-                    # Handle relative paths
-                    if not os.path.isabs(db_path):
-                        # Make path relative to the markdown file's directory
-                        db_path = os.path.join(os.path.dirname(page.file.abs_src_path), db_path)
-                    db_config['path'] = db_path
+                    if 'databases' in frontmatter:
+                        db_configs.update(frontmatter['databases'])
             except yaml.YAMLError:
                 pass
 
-        if not db_config.get('path'):
-            return markdown
-
         def replace_sql_block(match):
-            sql_query = match.group(1)
+            sql_query = match.group(2)  # SQL query is now in group 2
+            db_name = match.group(1) if match.group(1) else 'default'
+            
             try:
-                # Check if we need to create a new connection
-                db_path = db_config['path']
-                if self.current_db_path != db_path:
-                    if self.db_connection:
-                        self.db_connection.close()
-                    if db_config['type'] == 'duckdb':
-                        self.db_connection = duckdb.connect(db_path)
-                    else:
-                        self.db_connection = sqlite3.connect(db_path)
-                    self.current_db_path = db_path
+                if db_name not in db_configs:
+                    raise ValueError(f"Database configuration '{db_name}' not found")
+
+                if db_name not in self.connections:
+                    self.connections[db_name] = DatabaseConnection(db_configs[db_name])
                 
-                df = pd.read_sql_query(sql_query, self.db_connection)
+                df = self.connections[db_name].execute_query(sql_query)
                 
-                # Detect numeric columns including those with _population, _km2, _usd suffixes
+                # Format numeric columns
                 numeric_patterns = ['_population$', '_km2$', '_usd$', 'percentage$', 'density', 'gdp', 'area']
                 numeric_cols = set()
                 
@@ -107,18 +146,16 @@ class SQLPlugin(BasePlugin):
                             if any(pattern in col.lower() for pattern in ['percentage', 'density']):
                                 df[col] = df[col].round(2)
                             elif any(pattern in col.lower() for pattern in ['population', 'gdp', 'area']):
-                                # Format large numbers with commas
                                 df[col] = df[col].apply(lambda x: '{:,.0f}'.format(x) if pd.notnull(x) else '')
                             else:
                                 df[col] = df[col].round(2)
 
-                # Generate HTML table with proper classes for alignment
+                # Generate HTML table
                 html_table = '<table>\n'
                 
                 # Headers
                 html_table += '<thead>\n<tr>\n'
                 for col in df.columns:
-                    # Convert column names to title case and replace underscores
                     header = col.replace('_', ' ').title()
                     align_class = 'align-right' if col in numeric_cols else 'align-left'
                     html_table += f'<th class="{align_class}">{header}</th>\n'
@@ -130,17 +167,14 @@ class SQLPlugin(BasePlugin):
                     html_table += '<tr>\n'
                     for col, val in row.items():
                         align_class = 'align-right' if col in numeric_cols else 'align-left'
-                        # Handle null values
-                        if pd.isnull(val):
-                            val = ''
+                        val = '' if pd.isnull(val) else val
                         html_table += f'<td class="{align_class}">{val}</td>\n'
                     html_table += '</tr>\n'
                 html_table += '</tbody>\n</table>'
 
-                # Generate raw markdown table for copy/paste
+                # Generate raw markdown table
                 raw_table = tabulate(df, headers='keys', tablefmt='pipe', showindex=False)
                 
-                # Return the complete HTML structure
                 return (
                     '<div class="sql-wrapper">\n'
                     '<div class="sql-controls">\n'
@@ -159,7 +193,6 @@ class SQLPlugin(BasePlugin):
                     '</div>'
                 )
             except Exception as e:
-                error_msg = f"```\n{str(e)}\n```\n"
                 return (
                     '<div class="sql-wrapper">\n'
                     '<div class="sql-controls">\n'
@@ -168,13 +201,15 @@ class SQLPlugin(BasePlugin):
                     f'<div class="sql-query" style="display: none;">\n'
                     f'```sql\n{sql_query}\n```\n'
                     '</div>\n'
-                    f'**Error:** {error_msg}\n'
+                    f'**Error:** ```\n{str(e)}\n```\n'
                     '</div>'
                 )
 
-        pattern = r"```sql\n(.*?)\n```"
+        # Updated regex pattern to capture optional database name
+        pattern = r'```sql(?:\[(.*?)\])?\n(.*?)\n```'
         return re.sub(pattern, replace_sql_block, markdown, flags=re.DOTALL)
 
     def on_post_build(self, config):
-        if self.db_connection:
-            self.db_connection.close()
+        """Clean up database connections."""
+        for connection in self.connections.values():
+            connection.close()
