@@ -8,7 +8,12 @@ import re
 import pandas as pd
 from tabulate import tabulate
 import yaml
+import logging
 from typing import Dict, Any, Optional
+from importlib.metadata import version
+
+log = logging.getLogger('mkdocs.plugins.sql')
+__version__ = version("mkdocs_sql")
 
 class DatabaseConnection:
     def __init__(self, config: Dict[str, Any]):
@@ -83,7 +88,9 @@ class SQLPlugin(BasePlugin):
     )
 
     def __init__(self):
+        super().__init__()
         self.connections: Dict[str, DatabaseConnection] = {}
+        log.info(f"Initializing mkdocs-sql plugin v{__version__}")
 
     def on_config(self, config):
         """Initialize database configurations."""

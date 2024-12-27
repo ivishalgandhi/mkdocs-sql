@@ -19,7 +19,7 @@ plugins:
         adventureworks:
           type: mssql
           driver: "ODBC Driver 18 for SQL Server"
-          server: "127.0.0.1,1433"
+          server: "sql2022,1433"
           database: AdventureWorks2022
           username: sa
           password: ${MSSQL_PASSWORD}
